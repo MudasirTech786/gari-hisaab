@@ -130,12 +130,12 @@ function StatCard({
   color: "green" | "red" | "blue" | "slate" | "purple" | "amber"
 }) {
   const colorMap = {
-    green: "bg-emerald-500/10 text-emerald-500",
+    green: "bg-lime-300/10 text-lime-300",
     red: "bg-red-500/10 text-red-500",
-    blue: "bg-blue-500/10 text-blue-500",
-    slate: "bg-slate-500/10 text-slate-500",
+    blue: "bg-emerald-500/10 text-emerald-400",
+    slate: "bg-zinc-500/10 text-zinc-400",
     purple: "bg-purple-500/10 text-purple-500",
-    amber: "bg-amber-500/10 text-amber-500",
+    amber: "bg-lime-300/10 text-lime-200",
   }
 
   return (
@@ -430,12 +430,12 @@ export default function DashboardPage() {
                     >
                       <stop
                         offset="5%"
-                        stopColor="#22c55e"
+                        stopColor="#b8ff2c"
                         stopOpacity={0.3}
                       />
                       <stop
                         offset="95%"
-                        stopColor="#22c55e"
+                        stopColor="#b8ff2c"
                         stopOpacity={0}
                       />
                     </linearGradient>
@@ -461,7 +461,7 @@ export default function DashboardPage() {
                   <Area
                     type="monotone"
                     dataKey="amount"
-                    stroke="#22c55e"
+                    stroke="#b8ff2c"
                     strokeWidth={2}
                     fill="url(#earningsGradient)"
                   />
@@ -491,12 +491,12 @@ export default function DashboardPage() {
                     >
                       <stop
                         offset="5%"
-                        stopColor="#3b82f6"
+                        stopColor="#b8ff2c"
                         stopOpacity={0.3}
                       />
                       <stop
                         offset="95%"
-                        stopColor="#3b82f6"
+                        stopColor="#b8ff2c"
                         stopOpacity={0}
                       />
                     </linearGradient>
@@ -522,7 +522,7 @@ export default function DashboardPage() {
                   <Area
                     type="monotone"
                     dataKey="amount"
-                    stroke="#3b82f6"
+                    stroke="#b8ff2c"
                     strokeWidth={2}
                     fill="url(#profitGradient)"
                   />
@@ -570,7 +570,7 @@ export default function DashboardPage() {
                   <Bar
                     dataKey="earnings"
                     name="Earnings"
-                    fill="#22c55e"
+                    fill="#b8ff2c"
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar
@@ -582,7 +582,7 @@ export default function DashboardPage() {
                   <Bar
                     dataKey="profit"
                     name="Profit"
-                    fill="#3b82f6"
+                    fill="#b8ff2c"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
@@ -633,7 +633,7 @@ export default function DashboardPage() {
                         <TableCell>
                           {record.drivers?.name ?? "\u2014"}
                         </TableCell>
-                        <TableCell className="text-right text-emerald-500">
+                        <TableCell className="text-right text-lime-300">
                           {formatCurrency(totalEarnings)}
                         </TableCell>
                         <TableCell className="text-right text-red-500">
@@ -714,7 +714,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground">
                   Total Earnings
                 </p>
-                <p className="text-2xl font-bold text-emerald-500">
+                <p className="text-2xl font-bold text-lime-300">
                   {formatCurrency(data.month.total_earnings)}
                 </p>
               </div>
@@ -728,7 +728,7 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Net Profit</p>
-                <p className="text-2xl font-bold text-blue-500">
+                <p className="text-2xl font-bold text-emerald-400">
                   {formatCurrency(data.month.net_profit)}
                 </p>
               </div>

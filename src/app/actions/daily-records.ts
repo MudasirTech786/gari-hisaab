@@ -17,8 +17,44 @@ async function getOwnerId(supabase: Awaited<ReturnType<typeof createClient>>) {
     .eq("user_id", user.id)
     .single();
 
-  if (profileError || !profile) throw new Error("Profile not found");
-  return profile.id;
+  if (profile) return user.id;
+
+  console.warn(
+    "[DIAG] Profile not found for user",
+    user.id,
+    "- profileError:",
+    profileError?.message,
+    profileError?.code,
+    "- attempting insert"
+  );
+
+  const { data: newProfile, error: createError } = await supabase
+    .from("profiles")
+    .insert({
+      user_id: user.id,
+      full_name:
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split("@")[0] ||
+        "User",
+      email: user.email || "",
+      role: "owner",
+    })
+    .select("id")
+    .single();
+
+  if (createError || !newProfile) {
+    console.error(
+      "[DIAG] PROFILE CREATE FAILED:",
+      createError?.message,
+      createError?.code,
+      createError?.details,
+      createError?.hint
+    );
+    throw new Error("Profile not found");
+  }
+
+  return user.id;
 }
 
 export async function getDailyRecords(filters?: {

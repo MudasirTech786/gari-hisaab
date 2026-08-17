@@ -75,8 +75,7 @@ interface JoinedRecord {
 
 function calculateTotals(record: JoinedRecord) {
   const total_km = record.ending_km - record.starting_km
-  const total_earnings =
-    record.indrive_earnings + record.cash_earnings + record.online_earnings
+  const total_earnings = record.indrive_earnings
   const total_expenses = record.fuel_cost + record.other_expenses
   const net_profit = total_earnings - total_expenses
   return { total_km, total_earnings, total_expenses, net_profit }
@@ -221,14 +220,9 @@ export default function DailyRecordDetailPage({
 
   const formTotals = {
     total_km: form.ending_km - form.starting_km,
-    total_earnings:
-      form.indrive_earnings + form.cash_earnings + form.online_earnings,
+    total_earnings: form.indrive_earnings,
     total_expenses: form.fuel_cost + form.other_expenses,
-    net_profit:
-      form.indrive_earnings +
-      form.cash_earnings +
-      form.online_earnings -
-      (form.fuel_cost + form.other_expenses),
+    net_profit: form.indrive_earnings - (form.fuel_cost + form.other_expenses),
   }
 
   return (
@@ -287,13 +281,14 @@ export default function DailyRecordDetailPage({
                     <Select
                       value={form.driver_id}
                       onValueChange={(val) => updateForm("driver_id", val ?? "")}
+                      items={drivers.map((d) => ({ value: d.id, label: d.name }))}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select driver" />
                       </SelectTrigger>
                       <SelectContent>
                         {drivers.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>
+                          <SelectItem key={d.id} value={d.id} label={d.name}>
                             {d.name}
                           </SelectItem>
                         ))}
@@ -305,13 +300,14 @@ export default function DailyRecordDetailPage({
                     <Select
                       value={form.car_id}
                       onValueChange={(val) => updateForm("car_id", val ?? "")}
+                      items={cars.map((c) => ({ value: c.id, label: `${c.name} (${c.registration_number})` }))}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select car" />
                       </SelectTrigger>
                       <SelectContent>
                         {cars.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
+                          <SelectItem key={c.id} value={c.id} label={`${c.name} (${c.registration_number})`}>
                             {c.name} ({c.registration_number})
                           </SelectItem>
                         ))}
@@ -365,7 +361,7 @@ export default function DailyRecordDetailPage({
 
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Earnings
+                    InDrive Earnings (Total)
                   </Label>
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-1.5">
@@ -384,7 +380,7 @@ export default function DailyRecordDetailPage({
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Cash</Label>
+                      <Label>Cash (breakdown)</Label>
                       <Input
                         type="number"
                         step="1"
@@ -399,7 +395,7 @@ export default function DailyRecordDetailPage({
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Online</Label>
+                      <Label>Online (breakdown)</Label>
                       <Input
                         type="number"
                         step="1"

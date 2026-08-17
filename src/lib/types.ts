@@ -27,7 +27,7 @@ export interface Car {
   registration_number: string;
   make: string;
   model: string;
-  year: number;
+  year: number | null;
   current_km: number;
   is_active: boolean;
   owner_id: string;
@@ -50,8 +50,8 @@ export interface DailyRecord {
   car_id: string;
   driver_id: string;
   record_date: string;
-  shift_start: string;
-  shift_end: string;
+  shift_start: string | null;
+  shift_end: string | null;
   starting_km: number;
   ending_km: number;
   indrive_earnings: number;

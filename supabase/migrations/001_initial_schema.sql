@@ -49,15 +49,15 @@ CREATE TABLE cars (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   registration_number TEXT NOT NULL,
-  make TEXT NOT NULL,
-  model TEXT NOT NULL,
-  year INTEGER NOT NULL,
+  make TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT '',
+  year INTEGER,
   current_km NUMERIC NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
   owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT cars_year_check CHECK (year >= 1900 AND year <= 2100),
+  CONSTRAINT cars_year_check CHECK (year IS NULL OR (year >= 1900 AND year <= 2100)),
   CONSTRAINT cars_current_km_check CHECK (current_km >= 0)
 );
 
@@ -131,9 +131,10 @@ CREATE TABLE daily_records (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   car_id UUID NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
   driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   record_date DATE NOT NULL,
-  shift_start TIME NOT NULL,
-  shift_end TIME NOT NULL,
+  shift_start TIME,
+  shift_end TIME,
   starting_km NUMERIC NOT NULL,
   ending_km NUMERIC NOT NULL,
   indrive_earnings NUMERIC NOT NULL DEFAULT 0,
@@ -156,6 +157,7 @@ CREATE TABLE daily_records (
 
 CREATE INDEX idx_daily_records_car_id ON daily_records(car_id);
 CREATE INDEX idx_daily_records_driver_id ON daily_records(driver_id);
+CREATE INDEX idx_daily_records_owner_id ON daily_records(owner_id);
 CREATE INDEX idx_daily_records_record_date ON daily_records(record_date);
 
 ALTER TABLE daily_records ENABLE ROW LEVEL SECURITY;
@@ -188,6 +190,7 @@ CREATE TABLE expenses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   car_id UUID NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
   driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   daily_record_id UUID REFERENCES daily_records(id) ON DELETE SET NULL,
   expense_date DATE NOT NULL,
   category expense_category NOT NULL,
@@ -200,6 +203,7 @@ CREATE TABLE expenses (
 
 CREATE INDEX idx_expenses_car_id ON expenses(car_id);
 CREATE INDEX idx_expenses_driver_id ON expenses(driver_id);
+CREATE INDEX idx_expenses_owner_id ON expenses(owner_id);
 CREATE INDEX idx_expenses_expense_date ON expenses(expense_date);
 CREATE INDEX idx_expenses_daily_record_id ON expenses(daily_record_id);
 
@@ -233,6 +237,7 @@ CREATE TABLE earnings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   car_id UUID NOT NULL REFERENCES cars(id) ON DELETE CASCADE,
   driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+  owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   daily_record_id UUID REFERENCES daily_records(id) ON DELETE SET NULL,
   earning_date DATE NOT NULL,
   source earning_source NOT NULL,
@@ -245,6 +250,7 @@ CREATE TABLE earnings (
 
 CREATE INDEX idx_earnings_car_id ON earnings(car_id);
 CREATE INDEX idx_earnings_driver_id ON earnings(driver_id);
+CREATE INDEX idx_earnings_owner_id ON earnings(owner_id);
 CREATE INDEX idx_earnings_earning_date ON earnings(earning_date);
 CREATE INDEX idx_earnings_daily_record_id ON earnings(daily_record_id);
 
@@ -314,3 +320,35 @@ CREATE TRIGGER set_earnings_updated_at
   BEFORE UPDATE ON earnings
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================
+-- Trigger: auto-create profile on user signup
+-- ============================================================
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (user_id, full_name, email, role)
+  VALUES (
+    NEW.id,
+    COALESCE(
+      NEW.raw_user_meta_data ->> 'full_name',
+      NEW.raw_user_meta_data ->> 'name',
+      split_part(NEW.email, '@', 1)
+    ),
+    NEW.email,
+    'owner'
+  )
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_user();

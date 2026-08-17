@@ -180,13 +180,14 @@ export default function DailyRecordsPage() {
           <Select
             value={filters.driver_id}
             onValueChange={(val) => handleFilterChange("driver_id", val ?? "")}
+            items={drivers.map((d) => ({ value: d.id, label: d.name }))}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="All drivers" />
             </SelectTrigger>
             <SelectContent>
               {drivers.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
+                <SelectItem key={d.id} value={d.id} label={d.name}>
                   {d.name}
                 </SelectItem>
               ))}
@@ -201,13 +202,14 @@ export default function DailyRecordsPage() {
           <Select
             value={filters.car_id}
             onValueChange={(val) => handleFilterChange("car_id", val ?? "")}
+            items={cars.map((c) => ({ value: c.id, label: `${c.name} (${c.registration_number})` }))}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="All cars" />
             </SelectTrigger>
             <SelectContent>
               {cars.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
+                <SelectItem key={c.id} value={c.id} label={`${c.name} (${c.registration_number})`}>
                   {c.name} ({c.registration_number})
                 </SelectItem>
               ))}

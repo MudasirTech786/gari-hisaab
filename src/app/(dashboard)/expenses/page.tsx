@@ -69,7 +69,7 @@ type ExpenseWithRelations = Expense & {
 };
 
 const CATEGORY_BADGE_COLORS: Record<ExpenseCategory, string> = {
-  fuel: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
+  fuel: "border-lime-300/15 bg-lime-300/10 text-lime-200",
   maintenance:
     "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
   oil: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
@@ -80,7 +80,7 @@ const CATEGORY_BADGE_COLORS: Record<ExpenseCategory, string> = {
   car_wash:
     "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800",
   other:
-    "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:border-gray-700",
+    "border-white/8 bg-white/[.05] text-zinc-400",
 };
 
 const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
@@ -285,7 +285,7 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Fuel className="size-4 text-blue-500" />
+              <Fuel className="size-4 text-lime-300" />
               <span className="text-2xl font-bold">
                 {formatCurrency(fuelExpenses)}
               </span>
@@ -315,7 +315,7 @@ export default function ExpensesPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <DollarSign className="size-4 text-gray-500" />
+              <DollarSign className="size-4 text-zinc-400" />
               <span className="text-2xl font-bold">
                 {formatCurrency(otherExpenses)}
               </span>
@@ -354,13 +354,14 @@ export default function ExpensesPage() {
                 onValueChange={(val) =>
                   setFilters((f) => ({ ...f, driver_id: val ?? "" }))
                 }
+                items={drivers.map((driver) => ({ value: driver.id, label: driver.name }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Drivers" />
                 </SelectTrigger>
                 <SelectContent>
                   {drivers.map((driver) => (
-                    <SelectItem key={driver.id} value={driver.id}>
+                    <SelectItem key={driver.id} value={driver.id} label={driver.name}>
                       {driver.name}
                     </SelectItem>
                   ))}
@@ -550,13 +551,14 @@ export default function ExpensesPage() {
                   <Select
                     value={field.value || null}
                     onValueChange={(val) => field.onChange(val ?? "")}
+                    items={drivers.map((driver) => ({ value: driver.id, label: driver.name }))}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select driver" />
                     </SelectTrigger>
                     <SelectContent>
                       {drivers.map((driver) => (
-                        <SelectItem key={driver.id} value={driver.id}>
+                        <SelectItem key={driver.id} value={driver.id} label={driver.name}>
                           {driver.name}
                         </SelectItem>
                       ))}
@@ -580,13 +582,14 @@ export default function ExpensesPage() {
                   <Select
                     value={field.value || null}
                     onValueChange={(val) => field.onChange(val ?? "")}
+                    items={cars.map((car) => ({ value: car.id, label: `${car.name} (${car.registration_number})` }))}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select car" />
                     </SelectTrigger>
                     <SelectContent>
                       {cars.map((car) => (
-                        <SelectItem key={car.id} value={car.id}>
+                        <SelectItem key={car.id} value={car.id} label={`${car.name} (${car.registration_number})`}>
                           {car.name} ({car.registration_number})
                         </SelectItem>
                       ))}

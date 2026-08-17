@@ -244,13 +244,14 @@ export default function ReportsPage() {
                 onValueChange={(val) =>
                   setFilters((f) => ({ ...f, driver_id: val ?? "" }))
                 }
+                items={drivers.map((driver) => ({ value: driver.id, label: driver.name }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Drivers" />
                 </SelectTrigger>
                 <SelectContent>
                   {drivers.map((driver) => (
-                    <SelectItem key={driver.id} value={driver.id}>
+                    <SelectItem key={driver.id} value={driver.id} label={driver.name}>
                       {driver.name}
                     </SelectItem>
                   ))}
@@ -264,13 +265,14 @@ export default function ReportsPage() {
                 onValueChange={(val) =>
                   setFilters((f) => ({ ...f, car_id: val ?? "" }))
                 }
+                items={cars.map((car) => ({ value: car.id, label: car.name }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Cars" />
                 </SelectTrigger>
                 <SelectContent>
                   {cars.map((car) => (
-                    <SelectItem key={car.id} value={car.id}>
+                    <SelectItem key={car.id} value={car.id} label={car.name}>
                       {car.name}
                     </SelectItem>
                   ))}
@@ -359,7 +361,7 @@ export default function ReportsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2">
-                    <MapPin className="size-4 text-blue-500" />
+                    <MapPin className="size-4 text-lime-300" />
                     <span className="text-xl font-bold">
                       {s.total_km.toLocaleString()}
                     </span>

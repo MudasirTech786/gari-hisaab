@@ -70,7 +70,7 @@ type EarningWithRelations = Earning & {
 
 const SOURCE_COLORS: Record<EarningSource, string> = {
   indrive: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-400 dark:border-violet-800",
-  other: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/30 dark:text-gray-400 dark:border-gray-700",
+  other: "border-white/8 bg-white/[.05] text-zinc-400",
 };
 
 export default function EarningsPage() {
@@ -276,7 +276,7 @@ export default function EarningsPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Wallet className="size-4 text-blue-500" />
+              <Wallet className="size-4 text-lime-300" />
               <span className="text-2xl font-bold">
                 {formatCurrency(otherEarnings)}
               </span>
@@ -315,13 +315,14 @@ export default function EarningsPage() {
                 onValueChange={(val) =>
                   setFilters((f) => ({ ...f, driver_id: val ?? "" }))
                 }
+                items={drivers.map((driver) => ({ value: driver.id, label: driver.name }))}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="All Drivers" />
                 </SelectTrigger>
                 <SelectContent>
                   {drivers.map((driver) => (
-                    <SelectItem key={driver.id} value={driver.id}>
+                    <SelectItem key={driver.id} value={driver.id} label={driver.name}>
                       {driver.name}
                     </SelectItem>
                   ))}
@@ -511,13 +512,14 @@ export default function EarningsPage() {
                   <Select
                     value={field.value || null}
                     onValueChange={(val) => field.onChange(val ?? "")}
+                    items={drivers.map((driver) => ({ value: driver.id, label: driver.name }))}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select driver" />
                     </SelectTrigger>
                     <SelectContent>
                       {drivers.map((driver) => (
-                        <SelectItem key={driver.id} value={driver.id}>
+                        <SelectItem key={driver.id} value={driver.id} label={driver.name}>
                           {driver.name}
                         </SelectItem>
                       ))}
@@ -541,13 +543,14 @@ export default function EarningsPage() {
                   <Select
                     value={field.value || null}
                     onValueChange={(val) => field.onChange(val ?? "")}
+                    items={cars.map((car) => ({ value: car.id, label: `${car.name} (${car.registration_number})` }))}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select car" />
                     </SelectTrigger>
                     <SelectContent>
                       {cars.map((car) => (
-                        <SelectItem key={car.id} value={car.id}>
+                        <SelectItem key={car.id} value={car.id} label={`${car.name} (${car.registration_number})`}>
                           {car.name} ({car.registration_number})
                         </SelectItem>
                       ))}

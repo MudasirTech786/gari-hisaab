@@ -16,8 +16,44 @@ async function getOwnerId(supabase: Awaited<ReturnType<typeof createClient>>) {
     .eq("user_id", user.id)
     .single();
 
-  if (profileError || !profile) throw new Error("Profile not found");
-  return profile.id;
+  if (profile) return user.id;
+
+  console.warn(
+    "[DIAG] Profile not found for user",
+    user.id,
+    "- profileError:",
+    profileError?.message,
+    profileError?.code,
+    "- attempting insert"
+  );
+
+  const { data: newProfile, error: createError } = await supabase
+    .from("profiles")
+    .insert({
+      user_id: user.id,
+      full_name:
+        user.user_metadata?.full_name ||
+        user.user_metadata?.name ||
+        user.email?.split("@")[0] ||
+        "User",
+      email: user.email || "",
+      role: "owner",
+    })
+    .select("id")
+    .single();
+
+  if (createError || !newProfile) {
+    console.error(
+      "[DIAG] PROFILE CREATE FAILED:",
+      createError?.message,
+      createError?.code,
+      createError?.details,
+      createError?.hint
+    );
+    throw new Error("Profile not found");
+  }
+
+  return user.id;
 }
 
 export async function getReportData(filters: ReportFilterInput) {
@@ -83,9 +119,7 @@ export async function getReportData(filters: ReportFilterInput) {
     const totalEarnings = records.reduce(
       (sum, r) =>
         sum +
-        Number(r.indrive_earnings) +
-        Number(r.cash_earnings) +
-        Number(r.online_earnings),
+        Number(r.indrive_earnings),
       0
     );
     const recordExpenses = records.reduce(
@@ -119,9 +153,7 @@ export async function getReportData(filters: ReportFilterInput) {
 
     records.forEach((r) => {
       const dayEarnings =
-        Number(r.indrive_earnings) +
-        Number(r.cash_earnings) +
-        Number(r.online_earnings);
+        Number(r.indrive_earnings);
       const dayRecordExpenses = Number(r.fuel_cost) + Number(r.other_expenses);
       const dayKm = Number(r.ending_km) - Number(r.starting_km);
 
@@ -201,9 +233,7 @@ export async function getReportData(filters: ReportFilterInput) {
       }
       const entry = driverMap[r.driver_id];
       entry.earnings +=
-        Number(r.indrive_earnings) +
-        Number(r.cash_earnings) +
-        Number(r.online_earnings);
+        Number(r.indrive_earnings);
       entry.expenses += Number(r.fuel_cost) + Number(r.other_expenses);
       entry.km += Number(r.ending_km) - Number(r.starting_km);
       entry.days.add(r.record_date);

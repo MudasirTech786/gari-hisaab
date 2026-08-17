@@ -75,16 +75,14 @@ export default function NewDailyRecordPage() {
     })
   }, [])
 
-  const startingKm = watch("starting_km") ?? 0
-  const endingKm = watch("ending_km") ?? 0
-  const indriveEarnings = watch("indrive_earnings") ?? 0
-  const cashEarnings = watch("cash_earnings") ?? 0
-  const onlineEarnings = watch("online_earnings") ?? 0
-  const fuelCost = watch("fuel_cost") ?? 0
-  const otherExpenses = watch("other_expenses") ?? 0
+  const startingKm = Number(watch("starting_km")) || 0
+  const endingKm = Number(watch("ending_km")) || 0
+  const indriveEarnings = Number(watch("indrive_earnings")) || 0
+  const fuelCost = Number(watch("fuel_cost")) || 0
+  const otherExpenses = Number(watch("other_expenses")) || 0
 
   const totalKm = endingKm - startingKm
-  const totalEarnings = indriveEarnings + cashEarnings + onlineEarnings
+  const totalEarnings = indriveEarnings
   const totalExpenses = fuelCost + otherExpenses
   const netProfit = totalEarnings - totalExpenses
 
@@ -134,13 +132,16 @@ export default function NewDailyRecordPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Driver *</Label>
-                  <Select onValueChange={(val) => setValue("driver_id", val as string)}>
+                  <Select
+                    onValueChange={(val) => setValue("driver_id", val as string)}
+                    items={drivers.map((d) => ({ value: d.id, label: d.name }))}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select driver" />
                     </SelectTrigger>
                     <SelectContent>
                       {drivers.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
+                        <SelectItem key={d.id} value={d.id} label={d.name}>
                           {d.name}
                         </SelectItem>
                       ))}
@@ -154,13 +155,16 @@ export default function NewDailyRecordPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Car *</Label>
-                  <Select onValueChange={(val) => setValue("car_id", val as string)}>
+                  <Select
+                    onValueChange={(val) => setValue("car_id", val as string)}
+                    items={cars.map((c) => ({ value: c.id, label: `${c.name} (${c.registration_number})` }))}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select car" />
                     </SelectTrigger>
                     <SelectContent>
                       {cars.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
+                        <SelectItem key={c.id} value={c.id} label={`${c.name} (${c.registration_number})`}>
                           {c.name} ({c.registration_number})
                         </SelectItem>
                       ))}
@@ -225,7 +229,7 @@ export default function NewDailyRecordPage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Earnings
+                  InDrive Earnings (Total)
                 </Label>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-1.5">
@@ -239,7 +243,7 @@ export default function NewDailyRecordPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="cash_earnings">Cash</Label>
+                    <Label htmlFor="cash_earnings">Cash (breakdown)</Label>
                     <Input
                       id="cash_earnings"
                       type="number"
@@ -249,7 +253,7 @@ export default function NewDailyRecordPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="online_earnings">Online</Label>
+                    <Label htmlFor="online_earnings">Online (breakdown)</Label>
                     <Input
                       id="online_earnings"
                       type="number"
@@ -259,6 +263,9 @@ export default function NewDailyRecordPage() {
                     />
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Cash and Online are payment method breakdowns included within the InDrive total.
+                </p>
               </div>
 
               <div className="space-y-1.5">

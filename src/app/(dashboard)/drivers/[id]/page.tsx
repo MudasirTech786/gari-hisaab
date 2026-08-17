@@ -328,7 +328,7 @@ export default function DriverDetailPage() {
                   className={
                     driver.status === "active"
                       ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                      : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                      : "border-white/8 bg-white/[.05] text-zinc-400"
                   }
                 >
                   {driver.status === "active" ? "Active" : "Inactive"}
@@ -472,7 +472,7 @@ export default function DriverDetailPage() {
                 Expenses
               </div>
               <div className="flex items-center gap-1">
-                <span className="size-2.5 rounded-sm bg-blue-500" />
+                <span className="size-2.5 rounded-sm bg-lime-300" />
                 Profit
               </div>
             </div>

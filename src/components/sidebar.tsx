@@ -46,10 +46,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-slate-900">
-      <div className="flex items-center gap-2 px-6 py-5">
-        <Car className="size-6 text-white" />
-        <span className="text-lg font-bold text-white">Gari Hisaab</span>
+    <div className="flex h-full flex-col bg-[#0b0f0d] text-zinc-100">
+      <div className="flex items-center gap-3 px-5 py-6">
+        <div className="flex size-9 items-center justify-center rounded-xl border border-lime-300/20 bg-lime-300/10"><Car className="size-5 text-lime-300" /></div>
+        <div><span className="block text-base font-semibold tracking-tight text-white">Gari Hisaab</span><span className="text-[10px] font-medium tracking-[.14em] text-zinc-500 uppercase">Business control</span></div>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
@@ -62,10 +62,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-white/10 text-white"
-                  : "text-slate-300 hover:bg-white/5 hover:text-white"
+                  ? "bg-lime-300/10 text-lime-100 ring-1 ring-lime-300/10 shadow-[inset_3px_0_0_#b8ff2c]"
+                  : "text-zinc-400 hover:bg-white/[.045] hover:text-zinc-100"
               )}
             >
               <item.icon className="size-5 shrink-0" />
@@ -75,10 +75,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="border-t border-slate-700/50 p-3">
+      <div className="border-t border-white/[.07] p-3">
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 text-slate-300 hover:bg-white/5 hover:text-white"
+          className="w-full justify-start gap-3 rounded-xl text-zinc-400 hover:bg-white/[.045] hover:text-zinc-100"
           disabled={isPending}
           onClick={handleLogout}
         >
@@ -95,13 +95,14 @@ export function Sidebar() {
 
   return (
     <>
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
+      <aside className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-white/[.07]">
         <SidebarContent />
       </aside>
 
+      <div className="sticky top-0 z-40 flex h-16 items-center border-b border-white/[.07] bg-[#080b0a]/90 px-4 backdrop-blur-xl lg:hidden">
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger
-          render={<Button variant="ghost" size="icon" className="lg:hidden" />}
+          render={<Button variant="ghost" size="icon" className="text-zinc-400 hover:bg-white/[.06] hover:text-white lg:hidden" />}
         >
           <span className="sr-only">Open sidebar</span>
           <svg
@@ -119,11 +120,12 @@ export function Sidebar() {
             />
           </svg>
         </SheetTrigger>
-        <SheetContent side="left" showCloseButton={false} className="w-64 p-0">
+        <SheetContent side="left" showCloseButton={false} className="w-72 border-r border-white/[.08] bg-[#0b0f0d] p-0">
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SidebarContent onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
+      </div>
     </>
   )
 }
