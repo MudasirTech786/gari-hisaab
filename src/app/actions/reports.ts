@@ -1,60 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceId } from "@/lib/supabase/auth";
 import { reportFilterSchema, type ReportFilterInput } from "@/lib/validations";
-
-async function getOwnerId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) throw new Error("Not authenticated");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (profile) return user.id;
-
-  console.warn(
-    "[DIAG] Profile not found for user",
-    user.id,
-    "- profileError:",
-    profileError?.message,
-    profileError?.code,
-    "- attempting insert"
-  );
-
-  const { data: newProfile, error: createError } = await supabase
-    .from("profiles")
-    .insert({
-      user_id: user.id,
-      full_name:
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split("@")[0] ||
-        "User",
-      email: user.email || "",
-      role: "owner",
-    })
-    .select("id")
-    .single();
-
-  if (createError || !newProfile) {
-    console.error(
-      "[DIAG] PROFILE CREATE FAILED:",
-      createError?.message,
-      createError?.code,
-      createError?.details,
-      createError?.hint
-    );
-    throw new Error("Profile not found");
-  }
-
-  return user.id;
-}
 
 export async function getReportData(filters: ReportFilterInput) {
   const parsed = reportFilterSchema.safeParse(filters);
@@ -64,12 +12,12 @@ export async function getReportData(filters: ReportFilterInput) {
 
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     let recordsQuery = supabase
       .from("daily_records")
-      .select("*, drivers(name)")
-      .eq("owner_id", ownerId)
+      .select("id, driver_id, record_date, starting_km, ending_km, indrive_earnings, fuel_cost, other_expenses, drivers(name)")
+      .eq("workspace_id", workspaceId)
       .order("record_date", { ascending: true });
 
     if (parsed.data.start_date) {
@@ -87,8 +35,8 @@ export async function getReportData(filters: ReportFilterInput) {
 
     let expensesQuery = supabase
       .from("expenses")
-      .select("*")
-      .eq("owner_id", ownerId)
+      .select("expense_date, category, amount, car_id, driver_id")
+      .eq("workspace_id", workspaceId)
       .order("expense_date", { ascending: true });
 
     if (parsed.data.start_date) {
@@ -115,11 +63,8 @@ export async function getReportData(filters: ReportFilterInput) {
     const records = recordsResult.data || [];
     const standaloneExpenses = expensesResult.data || [];
 
-    // ---- SUMMARY ----
     const totalEarnings = records.reduce(
-      (sum, r) =>
-        sum +
-        Number(r.indrive_earnings),
+      (sum, r) => sum + Number(r.indrive_earnings),
       0
     );
     const recordExpenses = records.reduce(
@@ -145,15 +90,10 @@ export async function getReportData(filters: ReportFilterInput) {
     const avgProfitPerDay = uniqueDays > 0 ? netProfit / uniqueDays : 0;
     const costPerKm = totalKm > 0 ? totalExpenses / totalKm : 0;
 
-    // ---- DAILY BREAKDOWN ----
-    const dailyMap: Record<
-      string,
-      { earnings: number; expenses: number; km: number }
-    > = {};
+    const dailyMap: Record<string, { earnings: number; expenses: number; km: number }> = {};
 
     records.forEach((r) => {
-      const dayEarnings =
-        Number(r.indrive_earnings);
+      const dayEarnings = Number(r.indrive_earnings);
       const dayRecordExpenses = Number(r.fuel_cost) + Number(r.other_expenses);
       const dayKm = Number(r.ending_km) - Number(r.starting_km);
 
@@ -165,7 +105,6 @@ export async function getReportData(filters: ReportFilterInput) {
       dailyMap[r.record_date].km += dayKm;
     });
 
-    // Add standalone expenses to daily breakdown
     standaloneExpenses.forEach((e) => {
       if (!dailyMap[e.expense_date]) {
         dailyMap[e.expense_date] = { earnings: 0, expenses: 0, km: 0 };
@@ -179,26 +118,21 @@ export async function getReportData(filters: ReportFilterInput) {
         date,
         earnings: Math.round(values.earnings * 100) / 100,
         expenses: Math.round(values.expenses * 100) / 100,
-        profit:
-          Math.round((values.earnings - values.expenses) * 100) / 100,
+        profit: Math.round((values.earnings - values.expenses) * 100) / 100,
         km: Math.round(values.km * 100) / 100,
       }));
 
-    // ---- EXPENSES BY CATEGORY ----
     const categoryMap: Record<string, number> = {};
     records.forEach((r) => {
       if (Number(r.fuel_cost) > 0) {
-        categoryMap["fuel"] =
-          (categoryMap["fuel"] || 0) + Number(r.fuel_cost);
+        categoryMap["fuel"] = (categoryMap["fuel"] || 0) + Number(r.fuel_cost);
       }
       if (Number(r.other_expenses) > 0) {
-        categoryMap["other"] =
-          (categoryMap["other"] || 0) + Number(r.other_expenses);
+        categoryMap["other"] = (categoryMap["other"] || 0) + Number(r.other_expenses);
       }
     });
     standaloneExpenses.forEach((e) => {
-      categoryMap[e.category] =
-        (categoryMap[e.category] || 0) + Number(e.amount);
+      categoryMap[e.category] = (categoryMap[e.category] || 0) + Number(e.amount);
     });
 
     const expensesByCategory = Object.entries(categoryMap)
@@ -208,20 +142,16 @@ export async function getReportData(filters: ReportFilterInput) {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // ---- DRIVER COMPARISON ----
-    const driverMap: Record<
-      string,
-      {
-        driver_name: string;
-        earnings: number;
-        expenses: number;
-        km: number;
-        days: Set<string>;
-      }
-    > = {};
+    const driverMap: Record<string, {
+      driver_name: string;
+      earnings: number;
+      expenses: number;
+      km: number;
+      days: Set<string>;
+    }> = {};
 
     records.forEach((r) => {
-      const driverName = r.drivers?.name || "Unknown";
+      const driverName = ((r.drivers as unknown as { name: string }[] | null)?.[0]?.name) || "Unknown";
       if (!driverMap[r.driver_id]) {
         driverMap[r.driver_id] = {
           driver_name: driverName,
@@ -232,8 +162,7 @@ export async function getReportData(filters: ReportFilterInput) {
         };
       }
       const entry = driverMap[r.driver_id];
-      entry.earnings +=
-        Number(r.indrive_earnings);
+      entry.earnings += Number(r.indrive_earnings);
       entry.expenses += Number(r.fuel_cost) + Number(r.other_expenses);
       entry.km += Number(r.ending_km) - Number(r.starting_km);
       entry.days.add(r.record_date);
@@ -248,7 +177,6 @@ export async function getReportData(filters: ReportFilterInput) {
       days: d.days.size,
     }));
 
-    // ---- KM BY DAY ----
     const kmByDay = Object.entries(dailyMap)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, values]) => ({
@@ -279,9 +207,7 @@ export async function getReportData(filters: ReportFilterInput) {
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "Failed to generate report data",
+        error instanceof Error ? error.message : "Failed to generate report data",
     };
   }
 }

@@ -1,61 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceId } from "@/lib/supabase/auth";
 import { revalidatePath } from "next/cache";
 import { dailyRecordSchema, type DailyRecordInput } from "@/lib/validations";
-
-async function getOwnerId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) throw new Error("Not authenticated");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (profile) return user.id;
-
-  console.warn(
-    "[DIAG] Profile not found for user",
-    user.id,
-    "- profileError:",
-    profileError?.message,
-    profileError?.code,
-    "- attempting insert"
-  );
-
-  const { data: newProfile, error: createError } = await supabase
-    .from("profiles")
-    .insert({
-      user_id: user.id,
-      full_name:
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split("@")[0] ||
-        "User",
-      email: user.email || "",
-      role: "owner",
-    })
-    .select("id")
-    .single();
-
-  if (createError || !newProfile) {
-    console.error(
-      "[DIAG] PROFILE CREATE FAILED:",
-      createError?.message,
-      createError?.code,
-      createError?.details,
-      createError?.hint
-    );
-    throw new Error("Profile not found");
-  }
-
-  return user.id;
-}
 
 export async function getDailyRecords(filters?: {
   start_date?: string;
@@ -65,12 +13,12 @@ export async function getDailyRecords(filters?: {
 }) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     let query = supabase
       .from("daily_records")
-      .select("*, cars(name, registration_number), drivers(name)")
-      .eq("owner_id", ownerId)
+      .select("id, car_id, driver_id, record_date, shift_start, shift_end, starting_km, ending_km, indrive_earnings, cash_earnings, online_earnings, fuel_cost, other_expenses, notes, owner_id, workspace_id, created_at, updated_at, cars(name, registration_number), drivers(name)")
+      .eq("workspace_id", workspaceId)
       .order("record_date", { ascending: false });
 
     if (filters?.start_date) {
@@ -103,13 +51,13 @@ export async function getDailyRecords(filters?: {
 export async function getDailyRecordById(id: string) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data, error } = await supabase
       .from("daily_records")
-      .select("*, cars(name, registration_number), drivers(name)")
+      .select("id, car_id, driver_id, record_date, shift_start, shift_end, starting_km, ending_km, indrive_earnings, cash_earnings, online_earnings, fuel_cost, other_expenses, notes, created_at, updated_at, cars(name, registration_number), drivers(name)")
       .eq("id", id)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .single();
 
     if (error) throw error;
@@ -133,16 +81,15 @@ export async function createDailyRecord(data: DailyRecordInput) {
 
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
-    // Check for duplicate: same driver, same car, same date
     const { data: existing } = await supabase
       .from("daily_records")
       .select("id")
       .eq("driver_id", parsed.data.driver_id)
       .eq("car_id", parsed.data.car_id)
       .eq("record_date", parsed.data.record_date)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .maybeSingle();
 
     if (existing) {
@@ -168,14 +115,13 @@ export async function createDailyRecord(data: DailyRecordInput) {
         fuel_cost: parsed.data.fuel_cost,
         other_expenses: parsed.data.other_expenses,
         notes: parsed.data.notes || null,
-        owner_id: ownerId,
+        workspace_id: workspaceId,
       })
       .select()
       .single();
 
     if (error) throw error;
 
-    // Update car's current_km to the ending_km
     await supabase
       .from("cars")
       .update({
@@ -183,11 +129,11 @@ export async function createDailyRecord(data: DailyRecordInput) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.data.car_id)
-      .eq("owner_id", ownerId);
+      .eq("workspace_id", workspaceId);
 
     revalidatePath("/daily-records");
     revalidatePath("/dashboard");
-    revalidatePath("/cars");
+    revalidatePath("/car");
     return { success: true, data: record };
   } catch (error) {
     return {
@@ -208,16 +154,15 @@ export async function updateDailyRecord(id: string, data: DailyRecordInput) {
 
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
-    // Check duplicate (excluding current record)
     const { data: existing } = await supabase
       .from("daily_records")
       .select("id")
       .eq("driver_id", parsed.data.driver_id)
       .eq("car_id", parsed.data.car_id)
       .eq("record_date", parsed.data.record_date)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .neq("id", id)
       .maybeSingle();
 
@@ -247,13 +192,12 @@ export async function updateDailyRecord(id: string, data: DailyRecordInput) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .select()
       .single();
 
     if (error) throw error;
 
-    // Update car's current_km
     await supabase
       .from("cars")
       .update({
@@ -261,11 +205,11 @@ export async function updateDailyRecord(id: string, data: DailyRecordInput) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", parsed.data.car_id)
-      .eq("owner_id", ownerId);
+      .eq("workspace_id", workspaceId);
 
     revalidatePath("/daily-records");
     revalidatePath("/dashboard");
-    revalidatePath("/cars");
+    revalidatePath("/car");
     return { success: true, data: record };
   } catch (error) {
     return {
@@ -281,13 +225,13 @@ export async function updateDailyRecord(id: string, data: DailyRecordInput) {
 export async function deleteDailyRecord(id: string) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { error } = await supabase
       .from("daily_records")
       .delete()
       .eq("id", id)
-      .eq("owner_id", ownerId);
+      .eq("workspace_id", workspaceId);
 
     if (error) throw error;
 

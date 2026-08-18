@@ -141,7 +141,7 @@ export default function DailyRecordDetailPage({
     setLoading(true)
     const result = await getDailyRecordById(id)
     if (result.success && result.data) {
-      const r = result.data as JoinedRecord
+      const r = result.data as unknown as JoinedRecord
       setRecord(r)
       setForm({
         car_id: r.car_id,

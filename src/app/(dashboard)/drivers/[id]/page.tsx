@@ -128,7 +128,7 @@ export default function DriverDetailPage() {
       }
 
       if (recordsResult.success) {
-        setDailyRecords(recordsResult.data ?? []);
+        setDailyRecords(recordsResult.data as unknown as DailyRecord[]);
       }
 
       setLoading(false);

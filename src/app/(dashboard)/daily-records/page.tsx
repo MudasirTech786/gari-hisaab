@@ -99,7 +99,7 @@ export default function DailyRecordsPage() {
 
     const result = await getDailyRecords(params)
     if (result.success) {
-      setRecords(result.data as JoinedRecord[])
+      setRecords(result.data as unknown as JoinedRecord[])
     } else {
       toast.error(result.error)
     }

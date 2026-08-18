@@ -21,7 +21,6 @@ function Intro() {
       <div className="intro-mark"><Mark /></div>
       <div className="intro-car mt-10 flex w-full items-center gap-3"><span className="h-px flex-1 bg-gradient-to-r from-transparent to-emerald-400/50" /><CarFront className="size-8 text-emerald-300" aria-hidden="true" /><span className="h-px flex-1 bg-gradient-to-l from-transparent to-emerald-400/50" /></div>
       <div className="intro-brand mt-8"><h1 className="text-3xl font-semibold tracking-[-.055em]">Gari Hisaab</h1><p className="mt-3 text-sm text-zinc-400">Every Trip. Every Rupee. Under Control.</p></div>
-      <div className="intro-earnings mt-10 flex items-center gap-3 rounded-full border border-white/8 bg-white/[.035] px-4 py-2 text-sm"><TrendingUp className="size-4 text-emerald-300" /><span className="font-medium text-zinc-200">Rs. 0</span><span className="text-zinc-600">→</span><span className="font-medium text-emerald-300">Rs. 10,000</span></div>
     </div>
   </section>;
 }

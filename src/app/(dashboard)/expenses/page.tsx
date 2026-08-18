@@ -139,7 +139,7 @@ export default function ExpensesPage() {
 
       const result = await getExpenses(params);
       if (result.success) {
-        setExpenses(result.data as ExpenseWithRelations[]);
+        setExpenses(result.data as unknown as ExpenseWithRelations[]);
       } else {
         toast.error(result.error || "Failed to fetch expenses");
       }

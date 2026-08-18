@@ -117,7 +117,7 @@ export default function EarningsPage() {
 
       const result = await getEarnings(params);
       if (result.success) {
-        let data = result.data as EarningWithRelations[];
+        let data = result.data as unknown as EarningWithRelations[];
         if (filters.source) {
           data = data.filter((e) => e.source === filters.source);
         }

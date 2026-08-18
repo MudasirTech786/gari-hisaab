@@ -1,30 +1,20 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useEffect, useMemo, useState } from "react"
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  Legend,
-} from "recharts"
+
 import {
   TrendingUp,
   TrendingDown,
   DollarSign,
   Gauge,
   User,
+  Users,
+  Car,
   Calendar,
   Wallet,
   Target,
-  BarChart3,
 } from "lucide-react"
-import { format, parseISO } from "date-fns"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -38,6 +28,11 @@ import {
 import { PageHeader } from "@/components/page-header"
 import { formatCurrency, formatDate } from "@/lib/constants"
 import { getDashboardData } from "@/app/actions/dashboard"
+
+const DashboardCharts = dynamic(
+  () => import("./dashboard-charts").then((mod) => mod.DashboardCharts),
+  { ssr: false }
+)
 
 interface DashboardData {
   today: {
@@ -87,6 +82,11 @@ interface DashboardData {
     drivers: { name: string } | null
     cars: { name: string } | null
   }[]
+  fleet: {
+    total_cars: number
+    active_cars: number
+    total_drivers: number
+  }
 }
 
 function SkeletonCard() {
@@ -130,12 +130,12 @@ function StatCard({
   color: "green" | "red" | "blue" | "slate" | "purple" | "amber"
 }) {
   const colorMap = {
-    green: "bg-lime-300/10 text-lime-300",
-    red: "bg-red-500/10 text-red-500",
-    blue: "bg-emerald-500/10 text-emerald-400",
-    slate: "bg-zinc-500/10 text-zinc-400",
-    purple: "bg-purple-500/10 text-purple-500",
-    amber: "bg-lime-300/10 text-lime-200",
+    green: "bg-lime-300/15 text-lime-700",
+    red: "bg-red-500/10 text-red-600",
+    blue: "bg-lime-300/15 text-lime-700",
+    slate: "bg-gray-100 text-gray-600",
+    purple: "bg-gray-100 text-gray-600",
+    amber: "bg-lime-300/15 text-lime-700",
   }
 
   return (
@@ -159,78 +159,30 @@ function StatCard({
   )
 }
 
-function ChartTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: Array<{ value: number }>
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="rounded-lg border bg-background p-3 shadow-md">
-      <p className="mb-1 text-sm text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold">
-        {formatCurrency(payload[0].value)}
-      </p>
-    </div>
-  )
-}
-
-function DriverChartTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: Array<{ value: number; name: string }>
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="rounded-lg border bg-background p-3 shadow-md">
-      <p className="mb-2 text-sm font-medium">{label}</p>
-      {payload.map((entry, i) => (
-        <p key={i} className="text-sm">
-          <span className="text-muted-foreground">{entry.name}:</span>{" "}
-          <span className="font-semibold">{formatCurrency(entry.value)}</span>
-        </p>
-      ))}
-    </div>
-  )
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed">
-      <p className="text-sm text-muted-foreground">{message}</p>
-    </div>
-  )
-}
-
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     async function fetchDashboard() {
       try {
         const result = await getDashboardData()
+        if (cancelled) return
         if (result.success && result.data) {
-          setData(result.data as DashboardData)
+          setData(result.data as unknown as DashboardData)
         } else {
           setError(result.error || "Failed to load dashboard data")
         }
       } catch {
-        setError("An unexpected error occurred")
+        if (!cancelled) setError("An unexpected error occurred")
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     fetchDashboard()
+    return () => { cancelled = true }
   }, [])
 
   const driverIdToName = useMemo(() => {
@@ -254,7 +206,7 @@ export default function DashboardPage() {
       <div className="space-y-8">
         <PageHeader
           title="Dashboard"
-          description="Overview of your car earnings and expenses"
+          description="Fleet overview and performance metrics"
         />
         <div>
           <h2 className="mb-4 text-lg font-semibold">Today</h2>
@@ -285,7 +237,7 @@ export default function DashboardPage() {
       <div className="space-y-8">
         <PageHeader
           title="Dashboard"
-          description="Overview of your car earnings and expenses"
+          description="Fleet overview and performance metrics"
         />
         <Card>
           <CardContent className="flex h-[400px] items-center justify-center">
@@ -303,30 +255,59 @@ export default function DashboardPage() {
 
   if (!data) return null
 
-  const formatShortDate = (dateStr: string) => {
-    try {
-      return format(parseISO(dateStr), "dd MMM")
-    } catch {
-      return dateStr
-    }
-  }
-
-  const earningsChartData = data.earnings_trend.map((d) => ({
-    date: formatShortDate(d.date),
-    amount: d.amount,
-  }))
-
-  const profitChartData = data.profit_trend.map((d) => ({
-    date: formatShortDate(d.date),
-    amount: d.amount,
-  }))
-
   return (
     <div className="space-y-8">
       <PageHeader
         title="Dashboard"
         description="Overview of your car earnings and expenses"
       />
+
+      {/* Fleet Overview */}
+      <section>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-lime-300/10">
+                  <Car className="size-5 text-lime-700" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Vehicles</p>
+                  <p className="text-xl font-bold">{data.fleet.total_cars} <span className="text-sm font-normal text-muted-foreground">({data.fleet.active_cars} active)</span></p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-gray-100">
+                  <Users className="size-5 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Drivers</p>
+                  <p className="text-xl font-bold">{data.fleet.total_drivers}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-lime-300/15">
+                  <Wallet className="size-5 text-lime-700" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Today&apos;s Profit</p>
+                  <p className={`text-xl font-bold ${data.today.net_profit >= 0 ? 'text-lime-700' : 'text-red-600'}`}>
+                    {formatCurrency(data.today.net_profit)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
       {/* Today Section */}
       <section>
@@ -410,189 +391,12 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Charts Section */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Earnings Trend (Last 30 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.earnings_trend.some((d) => d.amount > 0) ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={earningsChartData}>
-                  <defs>
-                    <linearGradient
-                      id="earningsGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor="#b8ff2c"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="#b8ff2c"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    className="text-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    className="text-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value: number) =>
-                      `Rs ${value.toLocaleString()}`
-                    }
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="#b8ff2c"
-                    strokeWidth={2}
-                    fill="url(#earningsGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyState message="No earnings data for the last 30 days" />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Net Profit Trend (Last 30 Days)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.profit_trend.some((d) => d.amount !== 0) ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={profitChartData}>
-                  <defs>
-                    <linearGradient
-                      id="profitGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor="#b8ff2c"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="#b8ff2c"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 12 }}
-                    className="text-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    className="text-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value: number) =>
-                      `Rs ${value.toLocaleString()}`
-                    }
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="#b8ff2c"
-                    strokeWidth={2}
-                    fill="url(#profitGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyState message="No profit data for the last 30 days" />
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Driver Comparison */}
-      <section>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Driver Comparison (Last 30 Days)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.driver_comparison.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={data.driver_comparison}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="driver_name"
-                    tick={{ fontSize: 12 }}
-                    className="text-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    className="text-muted-foreground"
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value: number) =>
-                      `Rs ${value.toLocaleString()}`
-                    }
-                  />
-                  <Tooltip content={<DriverChartTooltip />} />
-                  <Legend />
-                  <Bar
-                    dataKey="earnings"
-                    name="Earnings"
-                    fill="#b8ff2c"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="expenses"
-                    name="Expenses"
-                    fill="#ef4444"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="profit"
-                    name="Profit"
-                    fill="#b8ff2c"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <EmptyState message="No driver data available" />
-            )}
-          </CardContent>
-        </Card>
-      </section>
+      {/* Charts Section - lazy loaded */}
+      <DashboardCharts
+        earnings_trend={data.earnings_trend}
+        profit_trend={data.profit_trend}
+        driver_comparison={data.driver_comparison}
+      />
 
       {/* Recent Activity */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -633,7 +437,7 @@ export default function DashboardPage() {
                         <TableCell>
                           {record.drivers?.name ?? "\u2014"}
                         </TableCell>
-                        <TableCell className="text-right text-lime-300">
+                        <TableCell className="text-right text-lime-700">
                           {formatCurrency(totalEarnings)}
                         </TableCell>
                         <TableCell className="text-right text-red-500">
@@ -648,7 +452,9 @@ export default function DashboardPage() {
                 </TableBody>
               </Table>
             ) : (
-              <EmptyState message="No recent records found" />
+              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed">
+                <p className="text-sm text-muted-foreground">No recent records found</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -693,7 +499,9 @@ export default function DashboardPage() {
                 </TableBody>
               </Table>
             ) : (
-              <EmptyState message="No recent expenses found" />
+              <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed">
+                <p className="text-sm text-muted-foreground">No recent expenses found</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -714,7 +522,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground">
                   Total Earnings
                 </p>
-                <p className="text-2xl font-bold text-lime-300">
+                <p className="text-2xl font-bold text-lime-700">
                   {formatCurrency(data.month.total_earnings)}
                 </p>
               </div>
@@ -728,7 +536,7 @@ export default function DashboardPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Net Profit</p>
-                <p className="text-2xl font-bold text-emerald-400">
+                <p className="text-2xl font-bold text-lime-700">
                   {formatCurrency(data.month.net_profit)}
                 </p>
               </div>

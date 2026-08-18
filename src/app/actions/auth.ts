@@ -21,6 +21,40 @@ export async function loginAction(data: LoginInput) {
     return { success: false, error: error.message };
   }
 
+  // Check platform admin
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_platform_admin")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profile?.is_platform_admin) {
+      redirect("/admin");
+    }
+
+    // Check workspace status for suspended accounts
+    const { data: membership } = await supabase
+      .from("workspace_members")
+      .select("workspace_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (membership) {
+      const { data: workspace } = await supabase
+        .from("workspaces")
+        .select("status")
+        .eq("id", membership.workspace_id)
+        .single();
+
+      if (workspace?.status === "suspended") {
+        redirect("/suspended");
+      }
+    }
+  }
+
   redirect("/dashboard");
 }
 

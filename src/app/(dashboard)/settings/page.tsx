@@ -11,6 +11,10 @@ import {
   Upload,
   Download,
   Loader2,
+  Briefcase,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
@@ -22,13 +26,22 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
+import { useWorkspace } from "@/lib/contexts/workspace-context";
+import { updateWorkspaceName } from "@/app/actions/workspace";
 
 export default function SettingsPage() {
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
+  const { workspace, refreshWorkspace } = useWorkspace();
+  const [editingName, setEditingName] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  const currentWorkspaceName = editingName ? workspaceName : (workspace?.name || "");
 
   useEffect(() => {
     async function fetchUser() {
@@ -54,22 +67,120 @@ export default function SettingsPage() {
     fetchUser();
   }, []);
 
+  async function handleSaveName() {
+    if (!workspaceName.trim()) return;
+    setSavingName(true);
+    try {
+      const result = await updateWorkspaceName(workspaceName);
+      if (result.success) {
+        await refreshWorkspace();
+        setEditingName(false);
+      }
+    } finally {
+      setSavingName(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Manage your account and application preferences"
+        description="Manage your workspace and account"
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <User className="size-5 text-muted-foreground" />
-              <CardTitle>Profile Info</CardTitle>
+              <Briefcase className="size-5 text-muted-foreground" />
+              <CardTitle>Workspace</CardTitle>
             </div>
             <CardDescription>
-              Your account information (read only)
+              Your fleet workspace settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Briefcase className="size-3.5" />
+                Fleet Name
+              </div>
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={workspaceName}
+                    onChange={(e) => setWorkspaceName(e.target.value)}
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveName()}
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleSaveName}
+                    disabled={savingName}
+                    className="h-8 px-2"
+                  >
+                    <Check className="size-4 text-lime-300" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingName(false)}
+                    className="h-8 px-2"
+                  >
+                    <X className="size-4 text-zinc-400" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">
+                    {currentWorkspaceName || "Not set"}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditingName(true);
+                      setWorkspaceName(workspace?.name || "");
+                    }}
+                    className="h-6 px-2"
+                  >
+                    <Pencil className="size-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            <Separator />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="size-3.5" />
+                Slug
+              </div>
+              <p className="text-sm font-medium">{workspace?.slug || "—"}</p>
+            </div>
+            <Separator />
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="size-3.5" />
+                Created
+              </div>
+              <p className="text-sm font-medium">
+                {workspace?.created_at
+                  ? new Date(workspace.created_at).toLocaleDateString()
+                  : "—"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <User className="size-5 text-muted-foreground" />
+              <CardTitle>Profile</CardTitle>
+            </div>
+            <CardDescription>
+              Your account information
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -111,33 +222,32 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Info className="size-5 text-muted-foreground" />
-              <CardTitle>App Info</CardTitle>
+              <CardTitle>About Gari Hisaab</CardTitle>
             </div>
             <CardDescription>
-              Information about Gari Hisaab
+              Multi-tenant fleet management platform
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Application</div>
-              <p className="text-sm font-medium">Gari Hisaab</p>
-            </div>
-            <Separator />
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Version</div>
-              <p className="text-sm font-medium">0.1.0</p>
-            </div>
-            <Separator />
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Description</div>
-              <p className="text-sm font-medium">
-                Car earnings and management system for tracking InDrive and
-                other ride earnings, expenses, and generating detailed reports.
-              </p>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Application</div>
+                <p className="text-sm font-medium">Gari Hisaab</p>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Version</div>
+                <p className="text-sm font-medium">0.2.0</p>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Description</div>
+                <p className="text-sm font-medium">
+                  Fleet management SaaS for small vehicle owners. Track earnings, expenses, drivers, and profitability.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

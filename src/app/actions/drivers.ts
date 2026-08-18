@@ -1,71 +1,19 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser, getWorkspaceId } from "@/lib/supabase/auth";
 import { revalidatePath } from "next/cache";
 import { driverSchema, type DriverInput } from "@/lib/validations";
-
-async function getOwnerId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) throw new Error("Not authenticated");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (profile) return user.id;
-
-  console.warn(
-    "[DIAG] Profile not found for user",
-    user.id,
-    "- profileError:",
-    profileError?.message,
-    profileError?.code,
-    "- attempting insert"
-  );
-
-  const { data: newProfile, error: createError } = await supabase
-    .from("profiles")
-    .insert({
-      user_id: user.id,
-      full_name:
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split("@")[0] ||
-        "User",
-      email: user.email || "",
-      role: "owner",
-    })
-    .select("id")
-    .single();
-
-  if (createError || !newProfile) {
-    console.error(
-      "[DIAG] PROFILE CREATE FAILED:",
-      createError?.message,
-      createError?.code,
-      createError?.details,
-      createError?.hint
-    );
-    throw new Error("Profile not found");
-  }
-
-  return user.id;
-}
 
 export async function getDrivers() {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data, error } = await supabase
       .from("drivers")
-      .select("*")
-      .eq("owner_id", ownerId)
+      .select("id, name, phone, status, owner_id, workspace_id, created_at, updated_at")
+      .eq("workspace_id", workspaceId)
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -81,13 +29,13 @@ export async function getDrivers() {
 export async function getDriverById(id: string) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data, error } = await supabase
       .from("drivers")
-      .select("*")
+      .select("id, name, phone, status, owner_id, workspace_id, created_at, updated_at")
       .eq("id", id)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .single();
 
     if (error) throw error;
@@ -108,7 +56,8 @@ export async function createDriver(data: DriverInput) {
 
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const user = await getAuthUser(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data: driver, error } = await supabase
       .from("drivers")
@@ -116,7 +65,8 @@ export async function createDriver(data: DriverInput) {
         name: parsed.data.name,
         phone: parsed.data.phone || "",
         status: parsed.data.status,
-        owner_id: ownerId,
+        owner_id: user.id,
+        workspace_id: workspaceId,
       })
       .select()
       .single();
@@ -141,7 +91,7 @@ export async function updateDriver(id: string, data: DriverInput) {
 
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data: driver, error } = await supabase
       .from("drivers")
@@ -152,7 +102,7 @@ export async function updateDriver(id: string, data: DriverInput) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .select()
       .single();
 
@@ -171,13 +121,13 @@ export async function updateDriver(id: string, data: DriverInput) {
 export async function deleteDriver(id: string) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { error } = await supabase
       .from("drivers")
       .delete()
       .eq("id", id)
-      .eq("owner_id", ownerId);
+      .eq("workspace_id", workspaceId);
 
     if (error) throw error;
 

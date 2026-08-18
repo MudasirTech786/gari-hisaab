@@ -4,6 +4,9 @@ import type {
   DriverStatus,
   ProfileRole,
   EarningSource,
+  WorkspaceMemberRole,
+  MaintenanceType,
+  VehicleDocumentType,
 } from "./types";
 
 export const EXPENSE_CATEGORIES: {
@@ -42,6 +45,44 @@ export const PROFILE_ROLES: {
 }[] = [
   { label: "Owner", value: "owner" },
   { label: "Admin", value: "admin" },
+];
+
+export const WORKSPACE_ROLES: {
+  label: string;
+  value: WorkspaceMemberRole;
+}[] = [
+  { label: "Owner", value: "owner" },
+  { label: "Admin", value: "admin" },
+  { label: "Manager", value: "manager" },
+  { label: "Driver", value: "driver" },
+  { label: "Viewer", value: "viewer" },
+];
+
+export const MAINTENANCE_TYPES: {
+  label: string;
+  value: MaintenanceType;
+}[] = [
+  { label: "Oil Change", value: "oil_change" },
+  { label: "Brake", value: "brake" },
+  { label: "Tyres", value: "tyres" },
+  { label: "Battery", value: "battery" },
+  { label: "Engine", value: "engine" },
+  { label: "AC", value: "ac" },
+  { label: "Repair", value: "repair" },
+  { label: "Service", value: "service" },
+  { label: "Other", value: "other" },
+];
+
+export const VEHICLE_DOCUMENT_TYPES: {
+  label: string;
+  value: VehicleDocumentType;
+}[] = [
+  { label: "Registration", value: "registration" },
+  { label: "Insurance", value: "insurance" },
+  { label: "Token Tax", value: "token_tax" },
+  { label: "Fitness", value: "fitness" },
+  { label: "Permit", value: "permit" },
+  { label: "Other", value: "other" },
 ];
 
 export function formatCurrency(amount: number): string {

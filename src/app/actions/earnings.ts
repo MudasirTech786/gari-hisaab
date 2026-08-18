@@ -1,61 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getWorkspaceId } from "@/lib/supabase/auth";
 import { revalidatePath } from "next/cache";
 import { earningSchema, type EarningInput } from "@/lib/validations";
-
-async function getOwnerId(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-  if (authError || !user) throw new Error("Not authenticated");
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("user_id", user.id)
-    .single();
-
-  if (profile) return user.id;
-
-  console.warn(
-    "[DIAG] Profile not found for user",
-    user.id,
-    "- profileError:",
-    profileError?.message,
-    profileError?.code,
-    "- attempting insert"
-  );
-
-  const { data: newProfile, error: createError } = await supabase
-    .from("profiles")
-    .insert({
-      user_id: user.id,
-      full_name:
-        user.user_metadata?.full_name ||
-        user.user_metadata?.name ||
-        user.email?.split("@")[0] ||
-        "User",
-      email: user.email || "",
-      role: "owner",
-    })
-    .select("id")
-    .single();
-
-  if (createError || !newProfile) {
-    console.error(
-      "[DIAG] PROFILE CREATE FAILED:",
-      createError?.message,
-      createError?.code,
-      createError?.details,
-      createError?.hint
-    );
-    throw new Error("Profile not found");
-  }
-
-  return user.id;
-}
 
 export async function getEarnings(filters?: {
   start_date?: string;
@@ -65,12 +13,12 @@ export async function getEarnings(filters?: {
 }) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     let query = supabase
       .from("earnings")
-      .select("*, cars(name, registration_number), drivers(name)")
-      .eq("owner_id", ownerId)
+      .select("id, earning_date, source, amount, description, car_id, driver_id, daily_record_id, owner_id, workspace_id, created_at, updated_at, drivers(name)")
+      .eq("workspace_id", workspaceId)
       .order("earning_date", { ascending: false });
 
     if (filters?.start_date) {
@@ -101,13 +49,13 @@ export async function getEarnings(filters?: {
 export async function getEarningById(id: string) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data, error } = await supabase
       .from("earnings")
-      .select("*, cars(name, registration_number), drivers(name)")
+      .select("id, earning_date, source, amount, description, car_id, driver_id, daily_record_id, workspace_id, cars(name, registration_number), drivers(name)")
       .eq("id", id)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .single();
 
     if (error) throw error;
@@ -129,7 +77,7 @@ export async function createEarning(data: EarningInput) {
 
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data: earning, error } = await supabase
       .from("earnings")
@@ -141,7 +89,7 @@ export async function createEarning(data: EarningInput) {
         source: parsed.data.source,
         amount: parsed.data.amount,
         description: parsed.data.description || null,
-        owner_id: ownerId,
+        workspace_id: workspaceId,
       })
       .select()
       .single();
@@ -169,7 +117,7 @@ export async function updateEarning(id: string, data: EarningInput) {
 
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { data: earning, error } = await supabase
       .from("earnings")
@@ -184,7 +132,7 @@ export async function updateEarning(id: string, data: EarningInput) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
-      .eq("owner_id", ownerId)
+      .eq("workspace_id", workspaceId)
       .select()
       .single();
 
@@ -205,13 +153,13 @@ export async function updateEarning(id: string, data: EarningInput) {
 export async function deleteEarning(id: string) {
   try {
     const supabase = await createClient();
-    const ownerId = await getOwnerId(supabase);
+    const workspaceId = await getWorkspaceId(supabase);
 
     const { error } = await supabase
       .from("earnings")
       .delete()
       .eq("id", id)
-      .eq("owner_id", ownerId);
+      .eq("workspace_id", workspaceId);
 
     if (error) throw error;
 
@@ -221,8 +169,7 @@ export async function deleteEarning(id: string) {
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete earning",
+      error: error instanceof Error ? error.message : "Failed to delete earning",
     };
   }
 }
