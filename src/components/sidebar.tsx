@@ -13,6 +13,7 @@ import {
   Wrench,
   FileText,
   Briefcase,
+  ChevronDown,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +25,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useWorkspace } from "@/lib/contexts/workspace-context"
 import { useState, type ReactNode } from "react"
+import Image from "next/image"
 
 const navSections = [
   {
@@ -73,23 +75,34 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { workspace } = useWorkspace()
 
   return (
-    <div className="flex h-full flex-col bg-[#0b0f0d] text-zinc-100">
-      <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex size-9 items-center justify-center rounded-xl border border-lime-300/20 bg-lime-300/10"><Car className="size-5 text-lime-300" /></div>
-        <div>
-          <span className="block text-base font-semibold tracking-tight text-white">Gari Hisaab</span>
-          <span className="text-[10px] font-medium tracking-[.14em] text-zinc-500 uppercase">Fleet Management</span>
+    <div className="flex h-full flex-col bg-[#070b09] text-zinc-100">
+      {/* Logo */}
+      <div className="flex justify-center px-5 pt-7 pb-2">
+        <div className="sb-logo relative">
+          <Image
+            src="/images/logo.png"
+            alt="Gari Hisaab"
+            width={280}
+            height={280}
+            className="sb-logo-img h-auto w-auto max-h-40 object-contain"
+            priority
+          />
         </div>
       </div>
 
+      {/* Workspace */}
       {workspace && (
-        <div className="mx-3 mb-4 rounded-xl border border-white/[.07] bg-white/[.03] px-3 py-2.5">
-          <p className="text-xs text-zinc-500 uppercase tracking-wider">Workspace</p>
-          <p className="text-sm font-medium text-white truncate">{workspace.name}</p>
+        <div className="mx-3 mb-5 mt-2 rounded-[14px] border border-white/[.08] bg-[#111614] px-3.5 py-3">
+          <p className="text-[10px] font-semibold tracking-[.14em] text-zinc-500 uppercase">Workspace</p>
+          <div className="mt-1 flex items-center justify-between">
+            <p className="text-sm font-medium text-white truncate">{workspace.name}&apos;s Fleet</p>
+            <ChevronDown className="size-3.5 shrink-0 text-zinc-500" />
+          </div>
         </div>
       )}
 
-      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
+      {/* Navigation */}
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-1">
         {navSections.map((section) => (
           <div key={section.label}>
             <p className="mb-1.5 px-3 text-[10px] font-semibold tracking-[.14em] text-zinc-600 uppercase">
@@ -105,10 +118,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     href={item.href}
                     onClick={onNavigate}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
+                      "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-[180ms] ease-out",
                       isActive
-                        ? "bg-lime-300/10 text-lime-100 ring-1 ring-lime-300/10 shadow-[inset_3px_0_0_#b8ff2c]"
-                        : "text-zinc-400 hover:bg-white/[.045] hover:text-zinc-100"
+                        ? "bg-gradient-to-r from-[rgba(94,233,181,0.18)] to-[rgba(94,233,181,0.08)] text-[#5ee9b5] shadow-[inset_3px_0_0_#5ee9b5,0_0_20px_rgba(94,233,181,0.08)]"
+                        : "text-zinc-400 hover:bg-[rgba(94,233,181,0.05)] hover:text-zinc-200"
                     )}
                   >
                     <item.icon className="size-4 shrink-0" />
@@ -120,7 +133,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
-
     </div>
   )
 }
@@ -135,33 +147,33 @@ export function Sidebar({ mobileProfile }: { mobileProfile?: ReactNode }) {
       </aside>
 
       <div className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-border bg-[#f3f4f6]/90 px-4 backdrop-blur-xl lg:hidden">
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger
-          render={<Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden" />}
-        >
-          <span className="sr-only">Open sidebar</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="size-5"
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger
+            render={<Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden" />}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-            />
-          </svg>
-        </SheetTrigger>
-        <SheetContent side="left" showCloseButton={false} className="w-72 border-r border-white/[.08] bg-[#0b0f0d] p-0">
-          <SheetTitle className="sr-only">Navigation</SheetTitle>
-          <SidebarContent onNavigate={() => setOpen(false)} />
-        </SheetContent>
-      </Sheet>
-      <span className="text-sm font-semibold tracking-tight text-foreground">Gari Hisaab</span>
-      <div className="ml-auto">{mobileProfile}</div>
+            <span className="sr-only">Open sidebar</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="size-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+              />
+            </svg>
+          </SheetTrigger>
+          <SheetContent side="left" showCloseButton={false} className="w-72 border-r border-white/[.08] bg-[#070b09] p-0">
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
+            <SidebarContent onNavigate={() => setOpen(false)} />
+          </SheetContent>
+        </Sheet>
+        <span className="text-sm font-semibold tracking-tight text-foreground">Gari Hisaab</span>
+        <div className="ml-auto">{mobileProfile}</div>
       </div>
     </>
   )

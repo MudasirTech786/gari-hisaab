@@ -122,6 +122,44 @@
 
 @media (prefers-reduced-motion: reduce) { .intro-glow, .intro-mark, .intro-car, .intro-brand, .intro-earnings, .login-dark-card { animation: none; } }
 
+/* ── Sidebar Logo Animation ────────────────────────────── */
+@keyframes sb-logo-in { 0% { opacity: 0; transform: scale(.92); filter: blur(6px); } 100% { opacity: 1; transform: scale(1); filter: blur(0); } }
+@keyframes sb-glow-in { 0% { opacity: 0; transform: scale(.7); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes sb-sweep { 0% { transform: translateX(-110%) skewX(-14deg); } 100% { transform: translateX(220%) skewX(-14deg); } }
+
+.sb-logo { display: flex; justify-content: center; }
+.sb-logo-img { animation: sb-logo-in .7s cubic-bezier(.22,1,.36,1) .15s both; filter: drop-shadow(0 0 12px rgba(94,233,181,.18)); }
+
+.sb-logo::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(94,233,181,.14), transparent 65%);
+  opacity: 0;
+  animation: sb-glow-in .55s ease .35s both;
+  pointer-events: none;
+}
+
+.sb-logo::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(94,233,181,.22), transparent);
+  opacity: 0;
+  animation: sb-sweep .7s ease .5s both;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-logo-img { animation: none !important; opacity: 1 !important; filter: drop-shadow(0 0 12px rgba(94,233,181,.18)) !important; }
+  .sb-logo::before { animation: none !important; opacity: 1 !important; }
+  .sb-logo::after { animation: none !important; }
+}
+
 .dashboard-theme { position: relative; isolation: isolate; }
 .dashboard-theme::before { position: fixed; z-index: -1; inset: 0; background: radial-gradient(circle at 72% -10%, rgb(184 255 44 / .12), transparent 30%), radial-gradient(circle at 5% 55%, rgb(22 101 52 / .045), transparent 26%), #f3f4f6; content: ""; }
 .dashboard-main { min-height: 100vh; animation: dashboard-enter .28s ease-out both; }
